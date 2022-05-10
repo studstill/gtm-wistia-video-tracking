@@ -1,0 +1,69 @@
+<script>
+	(function() {
+		function dataLayerPush(eventObj) {
+			window.dataLayer = window.dataLayer || [];
+			if (eventObj && Object.keys(eventObj).length) {
+				window.dataLayer.push(eventObj);
+			}
+		}
+		try {
+			var wistia_vide_src = document.querySelector('.wistia_embed').src;
+			var wistia_video_id = wistia_vide_src.split('embed/iframe/')[1] || undefined;
+
+			var wistia_video_element = Wistia.api(wistia_video_id);
+			var video_duration = parseInt(wistia_video_element.duration());
+			var video_title = wistia_video_element.name()
+
+			var base_event_obj = {
+				video_duration: video_duration,
+				video_title: video_title,
+				video_url: wistia_vide_src,
+				video_provider: 'wistia',
+				video_id: wistia_video_id
+			};
+
+			// video_start
+			wistia_video_element.bind("play", function() {
+				dataLayerPush(Object.assign(base_event_obj, {
+					event: "video_start",
+					video_current_time: 0,
+					video_percent: 0,
+				}));
+			});
+
+			// video_progress (10, 25, 50, 75)
+			wistia_video_element.bind('percentwatchedchanged', function (percent, lastPercent) {
+				function sendProgressEvent(videoPercent, videoCurrentTime) {
+					dataLayerPush(Object.assign(base_event_obj, {
+						event: "video_progress",
+						video_current_time: parseInt(videoCurrentTime),
+						video_percent: videoPercent,
+					}));
+				}
+				if (percent >= .10 && lastPercent < .10) {
+					sendProgressEvent(10, wistia_video_element.time());
+				}
+				if (percent >= .25 && lastPercent < .25) {
+					sendProgressEvent(25, wistia_video_element.time());
+
+				}
+				if (percent >= .50 && lastPercent < .50) {
+					sendProgressEvent(50, wistia_video_element.time());
+
+				}
+				if (percent >= .75 && lastPercent < .75) {
+					sendProgressEvent(75, wistia_video_element.time());
+				}			  
+			});
+
+			//video_complete
+			wistia_video_element.bind("end", function(t) {
+				dataLayerPush(Object.assign(base_event_obj, {
+					event: "video_complete",
+					video_current_time: wistia_video_element.time(),
+					video_percent: 100,
+				}));	  
+			});
+		} catch(e) {console.log(e)}
+	})();
+</script>
